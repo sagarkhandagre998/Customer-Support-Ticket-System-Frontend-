@@ -1,0 +1,274 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f8fafc;
+  --muted-foreground: #64748b;
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #e2e8f0;
+  --input: #ffffff;
+  --ring: #3b82f6;
+  --radius: 0.5rem;
+}
+
+@layer base {
+  :root {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --font-sans: var(--font-inter);
+    --font-mono: var(--font-roboto-mono);
+    
+    /* Additional CSS custom properties for components */
+    --card: #ffffff;
+    --card-foreground: #171717;
+    --popover: #ffffff;
+    --popover-foreground: #171717;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+  }
+  
+  .btn-danger {
+    @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+  }
+  
+  .card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
+  }
+  
+  .input-field {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+  }
+  
+  .status-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .status-open {
+    @apply bg-green-100 text-green-800;
+  }
+  
+  .status-in-progress {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+  
+  .status-resolved {
+    @apply bg-blue-100 text-blue-800;
+  }
+  
+  .status-closed {
+    @apply bg-gray-100 text-gray-800;
+  }
+  
+  .priority-high {
+    @apply bg-red-100 text-red-800;
+  }
+  
+  .priority-medium {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+  
+  .priority-low {
+    @apply bg-green-100 text-green-800;
+  }
+  
+  .priority-urgent {
+    @apply bg-purple-100 text-purple-800;
+  }
+  
+  /* Additional utility classes for consistent styling */
+  .bg-primary {
+    @apply bg-blue-600;
+  }
+  
+  .bg-primary-hover {
+    @apply bg-blue-700;
+  }
+  
+  .bg-primary-light {
+    @apply bg-blue-50;
+  }
+  
+  .text-primary {
+    @apply text-blue-600;
+  }
+  
+  .text-primary-dark {
+    @apply text-blue-800;
+  }
+  
+  .border-primary {
+    @apply border-blue-600;
+  }
+  
+  .border-primary-light {
+    @apply border-blue-200;
+  }
+  
+  .ring-primary {
+    @apply ring-blue-500;
+  }
+  
+  .shadow-card {
+    @apply shadow-soft;
+  }
+  
+  .shadow-card-hover {
+    @apply shadow-medium;
+  }
+  
+  /* Additional utility classes for better styling */
+  .text-muted-foreground {
+    @apply text-gray-600;
+  }
+  
+  .bg-accent {
+    @apply bg-gray-100;
+  }
+  
+  .text-accent-foreground {
+    @apply text-gray-900;
+  }
+  
+  .bg-card {
+    @apply bg-white;
+  }
+  
+  .text-card-foreground {
+    @apply text-gray-900;
+  }
+  
+  .border-input {
+    @apply border-gray-300;
+  }
+  
+  .bg-background {
+    @apply bg-white;
+  }
+  
+  .text-foreground {
+    @apply text-gray-900;
+  }
+  
+  .bg-secondary {
+    @apply bg-gray-100;
+  }
+  
+  .text-secondary-foreground {
+    @apply text-gray-900;
+  }
+  
+  .bg-destructive {
+    @apply bg-red-600;
+  }
+  
+  .text-destructive-foreground {
+    @apply text-white;
+  }
+  
+  .bg-primary {
+    @apply bg-blue-600;
+  }
+  
+  .text-primary-foreground {
+    @apply text-white;
+  }
+  
+  .bg-popover {
+    @apply bg-white;
+  }
+  
+  .text-popover-foreground {
+    @apply text-gray-900;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+    --primary: #3b82f6;
+    --primary-foreground: #ffffff;
+    --secondary: #1e293b;
+    --secondary-foreground: #f8fafc;
+    --muted: #1e293b;
+    --muted-foreground: #94a3b8;
+    --accent: #1e293b;
+    --accent-foreground: #f8fafc;
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    --border: #334155;
+    --input: #1e293b;
+    --ring: #3b82f6;
+  }
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--muted);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--muted-foreground);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--foreground);
+}
+
+/* Smooth animations */
+* {
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Focus styles */
+.focus-visible:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
