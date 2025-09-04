@@ -2,8 +2,8 @@
 
 A modern, full-stack ticket management system built with Next.js, TypeScript, and Tailwind CSS. This application provides a comprehensive solution for managing support tickets with role-based access control, real-time updates, and an intuitive admin dashboard.
 
-# Frontend - https://github.com/sagarkhandagre998/Customer-Support-Ticket-System-Frontend-
-# backend - https://github.com/sagarkhandagre998/Customer-Support-Ticket-System-Backend
+Frontend - https://github.com/sagarkhandagre998/Customer-Support-Ticket-System-Frontend-
+backend - https://github.com/sagarkhandagre998/Customer-Support-Ticket-System-Backend
 
 ## ✨ Features
 
