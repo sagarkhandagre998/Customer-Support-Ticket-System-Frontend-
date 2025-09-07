@@ -28,7 +28,7 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
           'ROLE_ADMIN': 3,
         };
 
-        if (roleHierarchy[userRole] < roleHierarchy[requiredRole]) {
+        if (roleHierarchy[userRole as keyof typeof roleHierarchy] < roleHierarchy[requiredRole]) {
           router.push('/dashboard');
           return;
         }
@@ -56,7 +56,7 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
       'ROLE_ADMIN': 3,
     };
 
-    if (roleHierarchy[userRole] < roleHierarchy[requiredRole]) {
+    if (roleHierarchy[userRole as keyof typeof roleHierarchy] < roleHierarchy[requiredRole]) {
       return null; // Will redirect to dashboard
     }
   }

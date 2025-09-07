@@ -380,7 +380,7 @@ function TicketDetailContent() {
                     {ticket.status === 'CLOSED' ? (
                       <p>Comments cannot be added to closed tickets.</p>
                     ) : (
-                      <p>You don't have permission to add comments to this ticket.</p>
+                      <p>You don&apos;t have permission to add comments to this ticket.</p>
                     )}
                   </div>
                 )}
