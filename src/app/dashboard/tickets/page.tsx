@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { ticketsAPI } from '@/lib/api';
+import { dashboardAPI } from '@/lib/api';
 import { Ticket, TicketFilters } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -38,18 +38,29 @@ function TicketsContent() {
     const fetchTickets = async () => {
       try {
         setIsLoading(true);
-        const data = await ticketsAPI.getAll();
+        console.log('🔍 User: Fetching my tickets...');
+        console.log('🔍 User: Current user:', user);
+        console.log('🔍 User: Token:', localStorage.getItem('token'));
+        console.log('🔍 User: Demo User ID:', localStorage.getItem('demoUserId'));
+        
+        const data = await dashboardAPI.getMyTickets();
+        console.log('✅ User: Fetched my tickets:', data);
+        console.log('✅ User: Number of tickets:', data.length);
         setTickets(data);
         setFilteredTickets(data);
       } catch (error) {
-        console.error('Failed to fetch tickets:', error);
+        console.error('❌ User: Failed to fetch my tickets:', error);
+        console.error('❌ Error details:', {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined
+        });
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchTickets();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     let filtered = tickets;

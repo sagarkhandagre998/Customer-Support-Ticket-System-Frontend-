@@ -90,13 +90,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 </span>
               </button>
 
-              {/* New Ticket Button - Only show for non-admin users */}
-              {formatRole(user.role) !== 'ADMIN' && (
-                <Button size="sm" className="hidden sm:flex bg-blue-600 hover:bg-blue-700 text-white">
-                  <Plus className="w-4 h-4 mr-2" />
-                  New Ticket
-                </Button>
-              )}
 
               {/* User menu */}
               <div className="relative profile-dropdown">

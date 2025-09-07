@@ -52,10 +52,10 @@ const navigationItems = [
     roles: ['ROLE_USER', 'ROLE_AGENT'], // Removed ROLE_ADMIN
   },
   {
-    name: 'Assigned Tickets',
-    href: '/dashboard/assigned',
+    name: 'Agent Dashboard',
+    href: '/dashboard/agent',
     icon: FileText,
-    roles: ['ROLE_AGENT', 'ROLE_ADMIN'],
+    roles: ['ROLE_AGENT'],
   },
   {
     name: 'Admin Dashboard',

@@ -126,14 +126,22 @@ export default function AdminTicketManagement({ onTicketUpdate }: AdminTicketMan
   const fetchData = async () => {
     try {
       setIsLoading(true);
+      console.log('🔍 Starting to fetch tickets and users data...');
       const [ticketsData, usersData] = await Promise.all([
         adminAPI.getAllTickets(),
         adminAPI.getAllUsers()
       ]);
+      console.log('✅ Successfully fetched tickets data:', ticketsData);
+      console.log('✅ Successfully fetched users data:', usersData);
       setTickets(ticketsData);
       setUsers(usersData);
+      console.log('✅ State updated - Tickets:', ticketsData.length, 'Users:', usersData.length);
     } catch (error) {
-      console.error('Failed to fetch data:', error);
+      console.error('❌ Failed to fetch data:', error);
+      console.error('❌ Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       toast.error('Failed to load tickets and users');
     } finally {
       setIsLoading(false);
@@ -199,10 +207,67 @@ export default function AdminTicketManagement({ onTicketUpdate }: AdminTicketMan
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold">Ticket Management</h2>
-        <p className="text-muted-foreground">
+        <h2 className="text-2xl font-bold text-gray-900">Ticket Management</h2>
+        <p className="text-gray-600 mt-1">
           Monitor and manage all system tickets with full administrative control
         </p>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-blue-600">Total Tickets</p>
+                <p className="text-2xl font-bold text-blue-900">{tickets.length}</p>
+              </div>
+              <Ticket className="w-8 h-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-orange-600">Open Tickets</p>
+                <p className="text-2xl font-bold text-orange-900">
+                  {tickets.filter(t => t.status === 'OPEN').length}
+                </p>
+              </div>
+              <AlertTriangle className="w-8 h-8 text-orange-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-purple-600">In Progress</p>
+                <p className="text-2xl font-bold text-purple-900">
+                  {tickets.filter(t => t.status === 'IN_PROGRESS').length}
+                </p>
+              </div>
+              <Clock className="w-8 h-8 text-purple-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-green-600">Resolved</p>
+                <p className="text-2xl font-bold text-green-900">
+                  {tickets.filter(t => t.status === 'RESOLVED' || t.status === 'CLOSED').length}
+                </p>
+              </div>
+              <CheckCircle className="w-8 h-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters and Search */}
@@ -262,139 +327,242 @@ export default function AdminTicketManagement({ onTicketUpdate }: AdminTicketMan
       </Card>
 
       {/* Tickets Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Tickets ({filteredTickets.length})</CardTitle>
-          <CardDescription>
+      <Card className="shadow-sm">
+        <CardHeader className="bg-gray-50 border-b">
+          <CardTitle className="flex items-center text-gray-900">
+            <Ticket className="w-5 h-5 mr-2 text-blue-600" />
+            Tickets ({filteredTickets.length})
+          </CardTitle>
+          <CardDescription className="text-gray-600">
             All system tickets with filtering and sorting capabilities
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-4 font-medium">
-                    <button 
-                      onClick={() => handleSort('subject')}
-                      className="flex items-center space-x-1 hover:text-primary transition-colors"
-                    >
-                      <span>Subject</span>
-                      <ArrowUpDown className="w-4 h-4" />
-                    </button>
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium">
-                    <button 
-                      onClick={() => handleSort('priority')}
-                      className="flex items-center space-x-1 hover:text-primary transition-colors"
-                    >
-                      <span>Priority</span>
-                      <ArrowUpDown className="w-4 h-4" />
-                    </button>
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium">
-                    <button 
-                      onClick={() => handleSort('status')}
-                      className="flex items-center space-x-1 hover:text-primary transition-colors"
-                    >
-                      <span>Status</span>
-                      <ArrowUpDown className="w-4 h-4" />
-                    </button>
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium">Owner</th>
-                  <th className="text-left py-3 px-4 font-medium">Assignee</th>
-                  <th className="text-left py-3 px-4 font-medium">
-                    <button 
-                      onClick={() => handleSort('createdAt')}
-                      className="flex items-center space-x-1 hover:text-primary transition-colors"
-                    >
-                      <span>Created</span>
-                      <ArrowUpDown className="w-4 h-4" />
-                    </button>
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredTickets.map((ticket) => (
-                  <tr key={ticket.id} className="border-b hover:bg-muted/50 transition-colors">
-                    <td className="py-3 px-4">
-                      <div className="max-w-xs">
-                        <div className="font-medium truncate">{ticket.subject}</div>
-                        <div className="text-sm text-muted-foreground truncate">
-                          {ticket.description}
+        <CardContent className="p-0">
+          {filteredTickets.length === 0 ? (
+            <div className="text-center py-12">
+              <Ticket className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No tickets found</h3>
+              <p className="text-gray-500">
+                {searchTerm || statusFilter !== 'all' || priorityFilter !== 'all' || assigneeFilter !== 'all'
+                  ? 'Try adjusting your search or filter criteria'
+                  : 'No tickets have been created yet'
+                }
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-4 px-6 font-semibold text-gray-900">
+                      <button 
+                        onClick={() => handleSort('subject')}
+                        className="flex items-center space-x-1 hover:text-blue-600 transition-colors"
+                      >
+                        <span>Subject</span>
+                        <ArrowUpDown className="w-4 h-4" />
+                      </button>
+                    </th>
+                    <th className="text-left py-4 px-6 font-semibold text-gray-900">
+                      <button 
+                        onClick={() => handleSort('priority')}
+                        className="flex items-center space-x-1 hover:text-blue-600 transition-colors"
+                      >
+                        <span>Priority</span>
+                        <ArrowUpDown className="w-4 h-4" />
+                      </button>
+                    </th>
+                    <th className="text-left py-4 px-6 font-semibold text-gray-900">
+                      <button 
+                        onClick={() => handleSort('status')}
+                        className="flex items-center space-x-1 hover:text-blue-600 transition-colors"
+                      >
+                        <span>Status</span>
+                        <ArrowUpDown className="w-4 h-4" />
+                      </button>
+                    </th>
+                    <th className="text-left py-4 px-6 font-semibold text-gray-900">Owner</th>
+                    <th className="text-left py-4 px-6 font-semibold text-gray-900">Assignee</th>
+                    <th className="text-left py-4 px-6 font-semibold text-gray-900">
+                      <button 
+                        onClick={() => handleSort('createdAt')}
+                        className="flex items-center space-x-1 hover:text-blue-600 transition-colors"
+                      >
+                        <span>Created</span>
+                        <ArrowUpDown className="w-4 h-4" />
+                      </button>
+                    </th>
+                    <th className="text-left py-4 px-6 font-semibold text-gray-900">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {filteredTickets.map((ticket) => (
+                    <tr key={ticket.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="py-4 px-6">
+                        <div className="max-w-xs">
+                          <div className="font-semibold text-gray-900 truncate">{ticket.subject}</div>
+                          <div className="text-sm text-gray-600 truncate">
+                            {ticket.description}
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-1 text-xs rounded-full border ${getPriorityColor(ticket.priority)}`}>
-                        {ticket.priority}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center space-x-2">
-                        {getStatusIcon(ticket.status)}
-                        <span className={`px-2 py-1 text-xs rounded-full border ${getStatusColor(ticket.status)}`}>
-                          {ticket.status.replace('_', ' ')}
+                      </td>
+                      <td className="py-4 px-6">
+                        <span className={`px-3 py-1 text-xs font-medium rounded-full ${getPriorityColor(ticket.priority)}`}>
+                          {ticket.priority}
                         </span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="text-sm">
-                        <div className="font-medium">{ticket.owner?.name || 'Unknown'}</div>
-                        <div className="text-muted-foreground">{ticket.owner?.email}</div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="text-sm">
-                        {ticket.assignee ? (
-                          <>
-                            <div className="font-medium">{ticket.assignee.name}</div>
-                            <div className="text-muted-foreground">{ticket.assignee.email}</div>
-                          </>
-                        ) : (
-                          <span className="text-muted-foreground">Unassigned</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="text-sm text-muted-foreground">
-                        {formatDate(ticket.createdAt)}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          asChild
-                        >
-                          <Link href={`/dashboard/tickets/${ticket.id}`}>
-                            <Eye className="w-4 h-4" />
-                          </Link>
-                        </Button>
-                        {ticket.status !== 'CLOSED' ? (
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="flex items-center space-x-2">
+                          {getStatusIcon(ticket.status)}
+                          <span className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(ticket.status)}`}>
+                            {ticket.status.replace('_', ' ')}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="text-sm">
+                          <div className="font-medium text-gray-900">{ticket.owner?.name || 'Unknown'}</div>
+                          <div className="text-gray-600">{ticket.owner?.email}</div>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="text-sm">
+                          {ticket.assignee ? (
+                            <>
+                              <div className="font-medium text-gray-900">{ticket.assignee.name}</div>
+                              <div className="text-gray-600">{ticket.assignee.email}</div>
+                            </>
+                          ) : (
+                            <span className="text-gray-500">Unassigned</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="text-sm text-gray-600">
+                          {formatDate(ticket.createdAt)}
+                        </div>
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="flex items-center space-x-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => startAssignTicket(ticket)}
-                            className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                            asChild
+                            className="border-gray-300 text-gray-700 hover:bg-gray-100"
+                            title="View Ticket"
                           >
-                            <UserCog className="w-4 h-4" />
+                            <Link href={`/dashboard/tickets/${ticket.id}`}>
+                              <Eye className="w-4 h-4" />
+                            </Link>
                           </Button>
-                        ) : (
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm text-gray-500 italic">Closed</span>
-                            <CheckCircle className="w-4 h-4 text-gray-400" />
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                          {ticket.status !== 'CLOSED' ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => startAssignTicket(ticket)}
+                              className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                              title="Assign Ticket"
+                            >
+                              <UserCog className="w-4 h-4" />
+                            </Button>
+                          ) : (
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm text-gray-500 italic">Closed</span>
+                              <CheckCircle className="w-4 h-4 text-gray-400" />
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Assign Ticket Modal */}
+      {assigningTicket && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-xl border-0">
+            <h3 className="text-lg font-semibold mb-4 text-gray-900">Assign Ticket</h3>
+            <p className="text-gray-600 mb-4">
+              Assign ticket &quot;{assigningTicket.subject}&quot; to a support agent
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-700">Support Agent</label>
+                <Select
+                  options={[
+                    { value: '', label: 'Unassigned' },
+                    ...users.filter(user => {
+                      // Handle both string and object role formats
+                      const userRole = typeof user.role === 'string' ? user.role : (user.role as any)?.name;
+                      return userRole === 'ROLE_AGENT';
+                    }).map(user => ({
+                      value: user.id,
+                      label: `${user.name} (Support Agent)`
+                    }))
+                  ]}
+                  value={assignData.assigneeId}
+                  onChange={(value) => setAssignData(prev => ({ ...prev, assigneeId: value }))}
+                />
+              </div>
+            </div>
+            <div className="flex space-x-2 mt-6">
+              <Button 
+                onClick={handleAssignTicket}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Assign Ticket
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setAssigningTicket(null)}
+                className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+                            className="border-gray-300 text-gray-700 hover:bg-gray-100"
+                            title="View Ticket"
+                          >
+                            <Link href={`/dashboard/tickets/${ticket.id}`}>
+                              <Eye className="w-4 h-4" />
+                            </Link>
+                          </Button>
+                          {ticket.status !== 'CLOSED' ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => startAssignTicket(ticket)}
+                              className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                              title="Assign Ticket"
+                            >
+                              <UserCog className="w-4 h-4" />
+                            </Button>
+                          ) : (
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm text-gray-500 italic">Closed</span>
+                              <CheckCircle className="w-4 h-4 text-gray-400" />
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
 

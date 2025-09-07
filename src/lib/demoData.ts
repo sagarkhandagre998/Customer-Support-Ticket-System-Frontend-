@@ -42,6 +42,7 @@ export const DEMO_TICKETS: Ticket[] = [
     category: 'TECHNICAL',
     ownerId: DEMO_USERS[0].id,
     owner: DEMO_USERS[0],
+    assigneeId: DEMO_USERS[1].id,
     assignee: DEMO_USERS[1],
     comments: [
       {
@@ -76,6 +77,7 @@ export const DEMO_TICKETS: Ticket[] = [
     category: 'BILLING',
     ownerId: DEMO_USERS[0].id,
     owner: DEMO_USERS[0],
+    assigneeId: DEMO_USERS[1].id,
     assignee: DEMO_USERS[1],
     comments: [
       {
@@ -126,6 +128,7 @@ export const DEMO_TICKETS: Ticket[] = [
     category: 'BUG_REPORT',
     ownerId: DEMO_USERS[0].id,
     owner: DEMO_USERS[0],
+    assigneeId: DEMO_USERS[1].id,
     assignee: DEMO_USERS[1],
     comments: [
       {
@@ -160,6 +163,7 @@ export const DEMO_TICKETS: Ticket[] = [
     category: 'GENERAL',
     ownerId: DEMO_USERS[0].id,
     owner: DEMO_USERS[0],
+    assigneeId: DEMO_USERS[1].id,
     assignee: DEMO_USERS[1],
     comments: [
       {
@@ -213,7 +217,7 @@ export const getTicketsByUserRole = (userRole: string, userId: string): Ticket[]
         ticket.assignee?.id === userId || ticket.status === 'OPEN'
       );
     case 'ROLE_USER':
-      return DEMO_TICKETS.filter(ticket => ticket.owner.id === userId);
+      return DEMO_TICKETS.filter(ticket => ticket.ownerId === userId);
     default:
       return [];
   }

@@ -277,6 +277,44 @@ export const ticketsAPI = {
     const response = await api.post(`/tickets/${id}/rate`, { rating, feedback });
     return response.data;
   },
+  
+  getAssignedTickets: async (): Promise<Ticket[]> => {
+    try {
+      const response = await api.get('/agent/tickets/my-assigned-tickets');
+      return response.data;
+    } catch (error) {
+      // Fallback to demo data
+      const token = localStorage.getItem('token');
+      if (token?.startsWith('demo-token-')) {
+        const demoUserId = localStorage.getItem('demoUserId');
+        const demoUser = DEMO_USERS.find(user => user.id === demoUserId);
+        if (demoUser) {
+          return DEMO_TICKETS.filter(ticket => ticket.assignee?.id === demoUserId);
+        }
+      }
+      throw error;
+    }
+  },
+  
+  updateTicketStatus: async (ticketId: string, status: string): Promise<Ticket> => {
+    try {
+      const response = await api.put(`/agent/tickets/${ticketId}/status?status=${encodeURIComponent(status)}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating ticket status:', error);
+      throw error;
+    }
+  },
+  
+  addCommentToTicket: async (ticketId: string, comment: string): Promise<Ticket> => {
+    try {
+      const response = await api.post(`/agent/tickets/${ticketId}/comment?comment=${encodeURIComponent(comment)}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error adding comment to ticket:', error);
+      throw error;
+    }
+  },
 };
 
 // Comments API
@@ -352,7 +390,7 @@ export const dashboardAPI = {
   
   getMyTickets: async (): Promise<Ticket[]> => {
     try {
-      const response = await api.get('tickets/my-tickets');
+      const response = await api.get('/tickets/my-tickets');
       return response.data;
     } catch (error) {
       // Fallback to demo data
@@ -576,6 +614,104 @@ export const adminAPI = {
       throw error;
     }
   },
+
+  // Comments Management
+  getCommentsByTicketId: async (ticketId: string): Promise<Comment[]> => {
+    try {
+      const response = await api.get(`/admin/tickets/${ticketId}/comments`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching ticket comments:', error);
+      // Fallback to regular comments API
+      const response = await api.get(`/comments/${ticketId}`);
+      return response.data;
+    }
+  },
+
+  createComment: async (ticketId: string, data: CommentFormData): Promise<Comment> => {
+    try {
+      const response = await api.post(`/admin/tickets/${ticketId}/comments`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating comment via admin API:', error);
+      // Fallback to regular comments API
+      const response = await api.post(`/comments/${ticketId}`, data);
+      return response.data;
+    }
+  },
+};
+
+// Agent API - for support agents to manage their assigned tickets
+export const agentAPI = {
+  // Get all tickets assigned to the current agent
+  getAssignedTickets: async (): Promise<Ticket[]> => {
+    try {
+      console.log('🔍 Agent API: Fetching assigned tickets...');
+      console.log('🔍 Agent API: Base URL:', api.defaults.baseURL);
+      console.log('🔍 Agent API: Full URL:', `${api.defaults.baseURL}/agent/tickets/my-assigned-tickets`);
+      console.log('🔍 Agent API: Headers:', api.defaults.headers);
+      
+      const response = await api.get('/agent/tickets/my-assigned-tickets');
+      console.log('✅ Agent API: Successfully fetched assigned tickets:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Agent API: Failed to fetch assigned tickets:', error);
+     
+      
+      // Fallback to demo data
+      const token = localStorage.getItem('token');
+      console.log('🔄 Agent API: Token check:', { token, isDemoToken: token?.startsWith('demo-token-') });
+      
+      if (token?.startsWith('demo-token-')) {
+        const demoUserId = localStorage.getItem('demoUserId');
+        console.log('🔄 Agent API: Demo user ID:', demoUserId);
+        
+        const demoUser = DEMO_USERS.find(user => user.id === demoUserId);
+        console.log('🔄 Agent API: Demo user found:', demoUser);
+        
+        if (demoUser && demoUser.role === 'ROLE_AGENT') {
+          console.log('🔄 Agent API: Falling back to demo data for agent');
+          const filteredTickets = DEMO_TICKETS.filter(ticket => 
+            ticket.assigneeId === demoUserId || ticket.assignee?.id === demoUserId
+          );
+          console.log('🔄 Agent API: Filtered demo tickets:', filteredTickets);
+          return filteredTickets;
+        } else {
+          console.log('🔄 Agent API: User is not an agent or not found');
+        }
+      } else {
+        console.log('🔄 Agent API: Not a demo token, cannot use fallback');
+      }
+      throw error;
+    }
+  },
+
+  // Update ticket status (Agent can only update their assigned tickets)
+  updateTicketStatus: async (ticketId: string, status: string): Promise<Ticket> => {
+    try {
+      console.log('🔍 Agent API: Updating ticket status:', { ticketId, status });
+      const response = await api.put(`/agent/tickets/${ticketId}/status?status=${encodeURIComponent(status)}`);
+      console.log('✅ Agent API: Successfully updated ticket status:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Agent API: Failed to update ticket status:', error);
+      throw error;
+    }
+  },
+
+  // Add comment to ticket (Agent can only comment on their assigned tickets)
+  addCommentToTicket: async (ticketId: string, comment: string): Promise<Ticket> => {
+    try {
+      console.log('🔍 Agent API: Adding comment to ticket:', { ticketId, comment });
+      const response = await api.post(`/agent/tickets/${ticketId}/comment?comment=${encodeURIComponent(comment)}`);
+      console.log('✅ Agent API: Successfully added comment:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Agent API: Failed to add comment:', error);
+      throw error;
+    }
+  },
+
 };
 
 // Notifications API

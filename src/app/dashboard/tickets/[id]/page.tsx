@@ -12,7 +12,7 @@ import Select from '@/components/ui/Select';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { Ticket, Comment, User } from '@/types';
-import { ticketsAPI, commentsAPI } from '@/lib/api';
+import { adminAPI, ticketsAPI, commentsAPI } from '@/lib/api';
 import { formatDate, getPriorityColor, getStatusColor, getStatusIcon, getInitials } from '@/lib/utils';
 import {
   ArrowLeft,
@@ -63,10 +63,24 @@ function TicketDetailContent() {
     const fetchTicketData = async () => {
       try {
         setIsLoading(true);
+        console.log('🔍 Fetching ticket data for ID:', ticketId);
+        
+        // Use appropriate API based on user role
+        const userRole = typeof user?.role === 'string' ? user.role : (user?.role as any)?.name;
+        const isAdmin = userRole === 'ROLE_ADMIN';
+        
+        console.log('🔍 User role:', userRole, 'Is admin:', isAdmin);
+        
         const [ticketData, commentsData] = await Promise.all([
-          ticketsAPI.getById(ticketId),
-          commentsAPI.getByTicketId(ticketId),
+          isAdmin ? adminAPI.getTicketById(ticketId) : ticketsAPI.getById(ticketId),
+          (isAdmin ? adminAPI.getCommentsByTicketId(ticketId) : commentsAPI.getByTicketId(ticketId)).catch(err => {
+            console.warn('Failed to fetch comments:', err);
+            return []; // Return empty array if comments fail
+          }),
         ]);
+        
+        console.log('✅ Ticket data fetched:', ticketData);
+        console.log('✅ Comments data fetched:', commentsData);
         
         setTicket(ticketData);
         setComments(commentsData);
@@ -79,8 +93,9 @@ function TicketDetailContent() {
           status: ticketData.status as 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED',
         });
       } catch (error) {
-        console.error('Failed to fetch ticket data:', error);
+        console.error('❌ Failed to fetch ticket data:', error);
         toast.error('Failed to load ticket details');
+        setTicket(null);
       } finally {
         setIsLoading(false);
       }
@@ -94,12 +109,20 @@ function TicketDetailContent() {
   const handleSaveTicket = async () => {
     try {
       setIsLoading(true);
-      const updatedTicket = await ticketsAPI.update(ticketId, editData);
+      console.log('💾 Saving ticket with data:', editData);
+      // Use appropriate API based on user role
+      const userRole = typeof user?.role === 'string' ? user.role : (user?.role as any)?.name;
+      const isAdmin = userRole === 'ROLE_ADMIN';
+      
+      const updatedTicket = isAdmin ? 
+        await adminAPI.updateTicket(ticketId, editData) : 
+        await ticketsAPI.update(ticketId, editData);
+      console.log('✅ Ticket updated successfully:', updatedTicket);
       setTicket(updatedTicket);
       setIsEditing(false);
       toast.success('Ticket updated successfully');
     } catch (error) {
-      console.error('Failed to update ticket:', error);
+      console.error('❌ Failed to update ticket:', error);
       toast.error('Failed to update ticket');
     } finally {
       setIsLoading(false);
@@ -116,13 +139,21 @@ function TicketDetailContent() {
         ticketId: ticketId,
       };
       
-      const newCommentData = await commentsAPI.create(ticketId, commentData);
+      console.log('💬 Adding comment:', commentData);
+      // Use appropriate API based on user role
+      const userRole = typeof user?.role === 'string' ? user.role : (user?.role as any)?.name;
+      const isAdmin = userRole === 'ROLE_ADMIN';
+      
+      const newCommentData = isAdmin ? 
+        await adminAPI.createComment(ticketId, commentData) : 
+        await commentsAPI.create(ticketId, commentData);
+      console.log('✅ Comment added successfully:', newCommentData);
       setComments(prev => [...prev, newCommentData]);
       setNewComment('');
       setIsAddingComment(false);
       toast.success('Comment added successfully');
     } catch (error) {
-      console.error('Failed to add comment:', error);
+      console.error('❌ Failed to add comment:', error);
       toast.error('Failed to add comment');
     } finally {
       setIsLoading(false);
@@ -131,9 +162,25 @@ function TicketDetailContent() {
 
   const canEditTicket = () => {
     if (!user || !ticket) return false;
-        return user.role === 'ROLE_ADMIN' || 
-            user.role === 'ROLE_AGENT' || 
-            ticket.owner?.id === user.id;
+    
+    // Handle both string and object role formats
+    const userRole = typeof user.role === 'string' ? user.role : (user.role as any)?.name;
+    
+    return userRole === 'ROLE_ADMIN' || 
+           userRole === 'ROLE_AGENT' || 
+           ticket.owner?.id === user.id;
+  };
+
+  const canAddComment = () => {
+    if (!user) return false;
+    
+    // Handle both string and object role formats
+    const userRole = typeof user.role === 'string' ? user.role : (user.role as any)?.name;
+    
+    // Admin can only view comments, not add them
+    // Only agents and ticket owners can add comments
+    return userRole === 'ROLE_AGENT' || 
+           (ticket && ticket.owner?.id === user.id);
   };
 
 
@@ -142,7 +189,10 @@ function TicketDetailContent() {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading ticket details...</p>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -152,16 +202,33 @@ function TicketDetailContent() {
     return (
       <DashboardLayout>
         <div className="text-center py-12">
-          <h2 className="text-2xl font-bold mb-4">Ticket Not Found</h2>
-          <p className="text-muted-foreground mb-6">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-red-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Ticket Not Found</h2>
+          <p className="text-gray-600 mb-6 max-w-md mx-auto">
             The ticket you&apos;re looking for doesn&apos;t exist or you don&apos;t have access to it.
           </p>
-          <Button asChild>
-            <Link href="/dashboard/tickets">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Tickets
-            </Link>
-          </Button>
+          <div className="flex justify-center space-x-4">
+            <Button asChild variant="outline">
+              <Link href={(() => {
+                const userRole = typeof user?.role === 'string' ? user.role : (user?.role as any)?.name;
+                console.log('🔍 Ticket Detail: User role for back button:', { userRole, userRoleType: typeof user?.role, userRoleValue: user?.role });
+                if (userRole === 'ROLE_ADMIN') return '/dashboard/all-tickets';
+                if (userRole === 'ROLE_AGENT') return '/dashboard/agent';
+                return '/dashboard/tickets';
+              })()}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Tickets
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href="/dashboard">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Dashboard
+              </Link>
+            </Button>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -173,7 +240,12 @@ function TicketDetailContent() {
         {/* Navigation */}
         <div className="flex items-center space-x-4">
           <Button variant="outline" size="sm" asChild>
-            <Link href="/dashboard/tickets">
+            <Link href={(() => {
+              const userRole = typeof user?.role === 'string' ? user.role : (user?.role as any)?.name;
+              if (userRole === 'ROLE_ADMIN') return '/dashboard/all-tickets';
+              if (userRole === 'ROLE_AGENT') return '/dashboard/agent';
+              return '/dashboard/tickets';
+            })()}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Tickets
             </Link>
@@ -316,50 +388,75 @@ function TicketDetailContent() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Add Comment */}
-                {!isAddingComment ? (
-                  <Button variant="outline" onClick={() => setIsAddingComment(true)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Comment
-                  </Button>
-                ) : (
-                  <div className="space-y-3">
-                    <Textarea
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                      placeholder="Write your comment..."
-                      rows={3}
-                    />
-                    <div className="flex space-x-2">
-                      <Button onClick={handleAddComment} loading={isLoading}>
-                        <Send className="w-4 h-4 mr-2" />
-                        Post Comment
-                      </Button>
-                      <Button variant="outline" onClick={() => setIsAddingComment(false)}>
-                        Cancel
-                      </Button>
+                {/* Add Comment - Only show for users who can add comments */}
+                {canAddComment() && (
+                  !isAddingComment ? (
+                    <Button variant="outline" onClick={() => setIsAddingComment(true)}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Comment
+                    </Button>
+                  ) : (
+                    <div className="space-y-3">
+                      <Textarea
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        placeholder="Write your comment..."
+                        rows={3}
+                      />
+                      <div className="flex space-x-2">
+                        <Button onClick={handleAddComment} loading={isLoading}>
+                          <Send className="w-4 h-4 mr-2" />
+                          Post Comment
+                        </Button>
+                        <Button variant="outline" onClick={() => setIsAddingComment(false)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                )}
+                
+                {/* Show message for admin users */}
+                {!canAddComment() && user && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <MessageSquare className="w-5 h-5 text-blue-600 mr-2" />
+                      <p className="text-blue-800 text-sm">
+                        As an admin, you can view all comments but cannot add new ones. 
+                        Only agents and ticket owners can add comments.
+                      </p>
                     </div>
                   </div>
                 )}
 
                 {/* Comments List */}
                 <div className="space-y-4">
-                  {comments.map((comment) => (
-                    <div key={comment.id} className="border-l-4 border-primary pl-4 py-2">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-sm font-medium">
-                            {comment.user?.name ? getInitials(comment.user.name) : 'U'}
-                          </div>
-                          <div>
-                            <p className="font-medium text-sm">{comment.user?.name || 'Unknown User'}</p>
-                            <p className="text-xs text-muted-foreground">{formatDate(comment.createdAt)}</p>
+                  {comments.length > 0 ? (
+                    comments.map((comment) => (
+                      <div key={comment.id} className="border-l-4 border-primary pl-4 py-2">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-sm font-medium">
+                              {comment.user?.name ? getInitials(comment.user.name) : 'U'}
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">{comment.user?.name || 'Unknown User'}</p>
+                              <p className="text-xs text-muted-foreground">{formatDate(comment.createdAt)}</p>
+                            </div>
                           </div>
                         </div>
+                        <p className="text-sm">{comment.content}</p>
                       </div>
-                      <p className="text-sm">{comment.content}</p>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500 text-sm">No comments yet</p>
+                      {canAddComment() && (
+                        <p className="text-gray-400 text-xs mt-1">Be the first to add a comment</p>
+                      )}
                     </div>
-                  ))}
+                  )}
                 </div>
               </CardContent>
             </Card>

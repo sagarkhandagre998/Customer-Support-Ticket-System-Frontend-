@@ -12,12 +12,9 @@ import {
   AlertTriangle, 
   CheckCircle, 
   TrendingUp,
-  UserPlus,
-  Settings,
   BarChart3,
   Activity,
   Shield,
-  Eye,
   ArrowLeft
 } from 'lucide-react';
 import { adminAPI } from '@/lib/api';
@@ -60,10 +57,14 @@ function AdminDashboardContent() {
   const fetchAdminStats = async () => {
     try {
       setIsLoading(true);
+      console.log('🔍 AdminDashboard: Starting to fetch admin stats...');
       const [usersData, ticketsData] = await Promise.all([
         adminAPI.getAllUsers(),
         adminAPI.getAllTickets()
       ]);
+
+      console.log('✅ AdminDashboard: Users data:', usersData);
+      console.log('✅ AdminDashboard: Tickets data:', ticketsData);
 
       const totalUsers = usersData.length;
       const totalTickets = ticketsData.length;
@@ -82,7 +83,7 @@ function AdminDashboardContent() {
         return acc;
       }, {} as Record<string, number>);
 
-      setStats({
+      const newStats = {
         totalUsers,
         totalTickets,
         openTickets,
@@ -90,9 +91,16 @@ function AdminDashboardContent() {
         pendingTickets,
         ticketsByStatus,
         ticketsByPriority
-      });
+      };
+
+      console.log('✅ AdminDashboard: Calculated stats:', newStats);
+      setStats(newStats);
     } catch (error) {
-      console.error('Failed to fetch admin data:', error);
+      console.error('❌ AdminDashboard: Failed to fetch admin data:', error);
+      console.error('❌ AdminDashboard: Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       toast.error('Failed to load admin data');
     } finally {
       setIsLoading(false);
@@ -324,6 +332,10 @@ function AdminOverview({ stats }: { stats: {
           </CardContent>
         </Card>
       </div>
+
+    </div>
+  );
+}
 
       {/* Quick Actions */}
       <Card>

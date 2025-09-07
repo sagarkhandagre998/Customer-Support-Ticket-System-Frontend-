@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { dashboardAPI } from '@/lib/api';
+import { dashboardAPI, agentAPI } from '@/lib/api';
 import { DashboardStats, Ticket } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -37,7 +37,6 @@ import {
   BarChart3,
   FileText,
   User,
-  Settings,
   Shield,
 } from 'lucide-react';
 
@@ -51,12 +50,44 @@ function DashboardContent() {
     const fetchDashboardData = async () => {
       try {
         setIsLoading(true);
-        const [statsData, ticketsData] = await Promise.all([
-          dashboardAPI.getStats(),
-          dashboardAPI.getMyTickets(),
-        ]);
-        setStats(statsData);
-        setRecentTickets(ticketsData.slice(0, 5)); // Show only 5 recent tickets
+        
+        // Check if user is an agent - load agent-specific data
+        const userRole = typeof user?.role === 'string' ? user.role : (user?.role as any)?.name;
+        if (userRole === 'ROLE_AGENT') {
+          console.log('🔍 Dashboard: User is an agent, fetching agent dashboard data');
+          // For agents, fetch assigned tickets and calculate stats on frontend
+          const assignedTickets = await agentAPI.getAssignedTickets();
+          console.log('🔍 Dashboard: Agent assigned tickets:', assignedTickets);
+          
+          setRecentTickets(assignedTickets.slice(0, 5));
+          
+          // Calculate stats from assigned tickets
+          const calculatedStats = {
+            totalTickets: assignedTickets.length,
+            openTickets: assignedTickets.filter(t => t.status === 'OPEN').length,
+            inProgressTickets: assignedTickets.filter(t => t.status === 'IN_PROGRESS').length,
+            resolvedTickets: assignedTickets.filter(t => t.status === 'RESOLVED').length,
+            closedTickets: assignedTickets.filter(t => t.status === 'CLOSED').length,
+            totalUsers: 0,
+            supportAgents: 0,
+            averageResolutionTime: 0,
+            ticketsByPriority: assignedTickets.reduce((acc, ticket) => {
+              acc[ticket.priority] = (acc[ticket.priority] || 0) + 1;
+              return acc;
+            }, { LOW: 0, MEDIUM: 0, HIGH: 0, URGENT: 0 } as { LOW: number; MEDIUM: number; HIGH: number; URGENT: number })
+          };
+          
+          console.log('🔍 Dashboard: Calculated agent stats:', calculatedStats);
+          setStats(calculatedStats);
+        } else {
+          console.log('🔍 Dashboard: User is not an agent, fetching regular dashboard data');
+          const [statsData, ticketsData] = await Promise.all([
+            dashboardAPI.getStats(),
+            dashboardAPI.getMyTickets(),
+          ]);
+          setStats(statsData);
+          setRecentTickets(ticketsData.slice(0, 5));
+        }
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
       } finally {
@@ -64,12 +95,17 @@ function DashboardContent() {
       }
     };
 
-    fetchDashboardData();
-  }, []);
+    if (user) {
+      fetchDashboardData();
+    }
+  }, [user]);
 
+  const userRole: string = getRoleName(user?.role);
+  const isAgent = userRole === 'ROLE_AGENT';
+  
   const statCards = [
     {
-      title: 'Total Tickets',
+      title: isAgent ? 'Assigned Tickets' : 'Total Tickets',
       value: stats?.totalTickets || 0,
       icon: TicketIcon,
       color: 'text-blue-600',
@@ -97,7 +133,7 @@ function DashboardContent() {
       bgColor: 'bg-purple-50',
     },
     // Admin-specific stats
-    ...(getRoleName(user?.role) === 'ROLE_ADMIN' ? [
+    ...(userRole === 'ROLE_ADMIN' ? [
       {
         title: 'Total Users',
         value: stats?.totalUsers || 0,
@@ -156,26 +192,24 @@ function DashboardContent() {
                 Welcome back, {user?.name}!
               </h1>
               <p className="text-blue-100 text-lg">
-                {getRoleName(user?.role) === 'ROLE_ADMIN' 
+                {userRole === 'ROLE_ADMIN' 
                   ? 'You have full administrative access to the system. Monitor tickets, manage users, and oversee operations.'
+                  : userRole === 'ROLE_AGENT'
+                  ? 'Manage your assigned tickets and help resolve customer issues efficiently.'
                   : 'Here\'s what\'s happening with your tickets today.'
                 }
               </p>
-              {getRoleName(user?.role) === 'ROLE_ADMIN' && (
+              {userRole === 'ROLE_ADMIN' && (
                 <div className="mt-4 inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-white/20 backdrop-blur-sm border border-white/30">
                   <Shield className="w-4 h-4 mr-2" />
                   Administrator Access
                 </div>
               )}
-            </div>
-            <div className="mt-6 sm:mt-0">
-              {getRoleName(user?.role) !== 'ROLE_ADMIN' && (
-                <Button className="bg-white text-blue-600 hover:bg-blue-50 border-0 shadow-lg" asChild>
-                  <Link href="/dashboard/tickets/new">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create New Ticket
-                  </Link>
-                </Button>
+              {userRole === 'ROLE_AGENT' && (
+                <div className="mt-4 inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-white/20 backdrop-blur-sm border border-white/30">
+                  <User className="w-4 h-4 mr-2" />
+                  Support Agent
+                </div>
               )}
             </div>
           </div>
@@ -228,22 +262,26 @@ function DashboardContent() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                  {Object.entries(stats.ticketsByPriority).map(([priority, count]) => (
+                  {stats?.ticketsByPriority ? Object.entries(stats.ticketsByPriority).map(([priority, count]) => (
                     <div key={priority} className="text-center p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
                       <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold border-2 ${getPriorityColor(priority)} mb-3`}>
                         {priority}
                       </div>
                       <p className="text-3xl font-bold text-gray-900">{count}</p>
                     </div>
-                  ))}
+                  )) : (
+                    <div className="col-span-full text-center py-8 text-gray-500">
+                      <p>No priority data available</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </motion.div>
         )}
 
-        {/* Recent Tickets - Only show for non-admin users */}
-        {getRoleName(user?.role) !== 'ROLE_ADMIN' && (
+        {/* Recent Tickets - Show for non-admin users */}
+        {userRole !== 'ROLE_ADMIN' && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -255,14 +293,14 @@ function DashboardContent() {
                   <div>
                     <CardTitle className="flex items-center text-xl">
                       <FileText className="w-6 h-6 mr-3 text-blue-600" />
-                      Recent Tickets
+                      {isAgent ? 'Recent Assigned Tickets' : 'Recent Tickets'}
                     </CardTitle>
                     <CardDescription className="text-gray-600">
-                      Your latest ticket activity
+                      {isAgent ? 'Your latest assigned ticket activity' : 'Your latest ticket activity'}
                     </CardDescription>
                   </div>
                   <Button variant="outline" size="sm" className="border-gray-300 text-gray-700 hover:bg-gray-50" asChild>
-                    <Link href="/dashboard/tickets">
+                    <Link href={isAgent ? "/dashboard/agent" : "/dashboard/tickets"}>
                       View All
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Link>
@@ -276,17 +314,19 @@ function DashboardContent() {
                       <TicketIcon className="w-8 h-8 text-gray-400" />
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      No tickets yet
+                      {isAgent ? 'No assigned tickets yet' : 'No tickets yet'}
                     </h3>
                     <p className="text-gray-600 mb-6">
-                      Get started by creating your first support ticket.
+                      {isAgent ? 'You don\'t have any assigned tickets at the moment.' : 'Get started by creating your first support ticket.'}
                     </p>
-                    <Button className="bg-blue-600 hover:bg-blue-700 text-white" asChild>
-                      <Link href="/dashboard/tickets/new">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Create Your First Ticket
-                      </Link>
-                    </Button>
+                    {!isAgent && (
+                      <Button className="bg-blue-600 hover:bg-blue-700 text-white" asChild>
+                        <Link href="/dashboard/tickets/new">
+                          <Plus className="w-4 h-4 mr-2" />
+                          Create Your First Ticket
+                        </Link>
+                      </Button>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -327,7 +367,7 @@ function DashboardContent() {
         )}
 
         {/* Admin Dashboard Section */}
-        {getRoleName(user?.role) === 'ROLE_ADMIN' && (
+        {userRole === 'ROLE_ADMIN' && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -398,7 +438,7 @@ function DashboardContent() {
            <Card className="border-0 shadow-md">
              <CardHeader className="pb-4">
                <CardTitle className="flex items-center text-xl">
-                 <Settings className="w-6 h-6 mr-3 text-blue-600" />
+                 <BarChart3 className="w-6 h-6 mr-3 text-blue-600" />
                  Quick Actions
                </CardTitle>
                <CardDescription className="text-gray-600">
@@ -407,7 +447,7 @@ function DashboardContent() {
              </CardHeader>
              <CardContent>
                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                 {getRoleName(user?.role) !== 'ROLE_ADMIN' && (
+                 {userRole !== 'ROLE_ADMIN' && userRole !== 'ROLE_AGENT' && (
                    <Button variant="outline" className="h-auto p-6 flex-col border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200" asChild>
                      <Link href="/dashboard/tickets/new">
                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-3">
@@ -417,9 +457,9 @@ function DashboardContent() {
                      </Link>
                    </Button>
                  )}
-                 {getRoleName(user?.role) !== 'ROLE_ADMIN' && (
+                 {userRole !== 'ROLE_ADMIN' && (
                    <Button variant="outline" className="h-auto p-6 flex-col border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200" asChild>
-                     <Link href="/dashboard/tickets">
+                     <Link href={userRole === 'ROLE_AGENT' ? '/dashboard/agent' : '/dashboard/tickets'}>
                        <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-3">
                          <TicketIcon className="w-6 h-6 text-green-600" />
                        </div>
@@ -436,7 +476,7 @@ function DashboardContent() {
                    </Link>
                  </Button>
                  
-                 {getRoleName(user?.role) === 'ROLE_ADMIN' && (
+                 {userRole === 'ROLE_ADMIN' && (
                    <Button variant="outline" className="h-auto p-6 flex-col border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200" asChild>
                      <Link href="/dashboard/admin">
                        <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-3">
@@ -446,13 +486,14 @@ function DashboardContent() {
                      </Link>
                    </Button>
                  )}
-                 {getRoleName(user?.role) !== 'ROLE_ADMIN' && (
+                 
+                 {userRole === 'ROLE_AGENT' && (
                    <Button variant="outline" className="h-auto p-6 flex-col border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200" asChild>
-                     <Link href="/dashboard/settings">
-                       <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mb-3">
-                         <Settings className="w-6 h-6 text-gray-600" />
+                     <Link href="/dashboard/agent">
+                       <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-3">
+                         <FileText className="w-6 h-6 text-blue-600" />
                        </div>
-                       <span className="font-medium">Settings</span>
+                       <span className="font-medium">Agent Dashboard</span>
                      </Link>
                    </Button>
                  )}

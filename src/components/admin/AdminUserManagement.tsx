@@ -55,11 +55,17 @@ export default function AdminUserManagement({ onUserUpdate }: AdminUserManagemen
   const fetchUsers = async () => {
     try {
       setIsLoading(true);
+      console.log('🔍 Starting to fetch users...');
       const usersData = await adminAPI.getAllUsers();
+      console.log('✅ Successfully fetched users data:', usersData);
       setUsers(usersData);
-      console.log('🚀 Fetched users data:', usersData);
+      console.log('✅ Users state updated with:', usersData.length, 'users');
     } catch (error) {
-      console.error('Failed to fetch users:', error);
+      console.error('❌ Failed to fetch users:', error);
+      console.error('❌ Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       toast.error('Failed to load users');
     } finally {
       setIsLoading(false);
@@ -205,70 +211,84 @@ export default function AdminUserManagement({ onUserUpdate }: AdminUserManagemen
       {/* Header and Actions */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">User Management</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
+          <p className="text-gray-600 mt-1">
             Manage system users, roles, and permissions
           </p>
         </div>
-        <div className="flex space-x-2">
-          <Button 
-            variant="outline" 
-            onClick={() => {
-              console.log('🚀 Simple test button clicked - this should work');
-              alert('Test button clicked! Check console for logs.');
-            }}
-            className="text-xs bg-green-100 text-green-700"
-          >
-            Test Button
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={() => {
-              debugAPI();
-              toast.success('API debug info logged to console');
-            }}
-            className="text-xs"
-          >
-            Debug API
-          </Button>
-          {process.env.NODE_ENV === 'development' && (
-            <>
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  console.log('🚨 Triggering test error for Next.js error overlay');
-                  throw new Error('Test error to trigger Next.js error overlay');
-                }}
-                className="text-xs bg-red-100 text-red-700 hover:bg-red-200"
-              >
-                Test Error
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  console.log('🚨 Triggering API test error');
-                  // This will trigger an API error that should show in the overlay
-                  adminAPI.createUser({
-                    name: 'Test User',
-                    email: 'test@example.com',
-                    password: 'test123',
-                    role: 'ROLE_USER'
-                  }).catch(error => {
-                    console.log('API error caught, re-throwing to trigger overlay');
-                    throw error;
-                  });
-                }}
-                className="text-xs bg-orange-100 text-orange-700 hover:bg-orange-200"
-              >
-                Test API Error
-              </Button>
-            </>
-          )}
-          <Button onClick={() => setShowAddUser(true)}>
-            <UserPlus className="w-4 h-4 mr-2" />
-            Add User
-          </Button>
-        </div>
+        <Button 
+          onClick={() => setShowAddUser(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white"
+        >
+          <UserPlus className="w-4 h-4 mr-2" />
+          Add User
+        </Button>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-blue-600">Total Users</p>
+                <p className="text-2xl font-bold text-blue-900">{users.length}</p>
+              </div>
+              <Users className="w-8 h-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-green-600">Regular Users</p>
+                <p className="text-2xl font-bold text-green-900">
+                  {users.filter(u => {
+                    const role = typeof u.role === 'string' ? u.role : (u.role as any)?.name;
+                    return role === 'ROLE_USER';
+                  }).length}
+                </p>
+              </div>
+              <UserCheck className="w-8 h-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-purple-600">Support Agents</p>
+                <p className="text-2xl font-bold text-purple-900">
+                  {users.filter(u => {
+                    const role = typeof u.role === 'string' ? u.role : (u.role as any)?.name;
+                    return role === 'ROLE_AGENT';
+                  }).length}
+                </p>
+              </div>
+              <Shield className="w-8 h-8 text-purple-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-orange-600">Administrators</p>
+                <p className="text-2xl font-bold text-orange-900">
+                  {users.filter(u => {
+                    const role = typeof u.role === 'string' ? u.role : (u.role as any)?.name;
+                    return role === 'ROLE_ADMIN';
+                  }).length}
+                </p>
+              </div>
+              <UserCog className="w-8 h-8 text-orange-500" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters */}
@@ -303,64 +323,88 @@ export default function AdminUserManagement({ onUserUpdate }: AdminUserManagemen
       </Card>
 
       {/* Users List */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Users className="w-5 h-5 mr-2" />
+      <Card className="shadow-sm">
+        <CardHeader className="bg-gray-50 border-b">
+          <CardTitle className="flex items-center text-gray-900">
+            <Users className="w-5 h-5 mr-2 text-blue-600" />
             Users ({filteredUsers.length})
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {filteredUsers.map((user) => (
-              <div
-                key={user.id}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
-              >
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-medium">
-                    {getInitials(user.name || user.email)}
-                  </div>
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <h3 className="font-medium">{user.name || 'No Name'}</h3>
-                      {getRoleIcon(user.role)}
+        <CardContent className="p-0">
+          {filteredUsers.length === 0 ? (
+            <div className="text-center py-12">
+              <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No users found</h3>
+              <p className="text-gray-500 mb-4">
+                {searchTerm || roleFilter !== 'all' 
+                  ? 'Try adjusting your search or filter criteria'
+                  : 'Get started by adding your first user'
+                }
+              </p>
+              {(!searchTerm && roleFilter === 'all') && (
+                <Button 
+                  onClick={() => setShowAddUser(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Add First User
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-200">
+              {filteredUsers.map((user) => (
+                <div
+                  key={user.id}
+                  className="flex items-center justify-between p-6 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-lg">
+                      {getInitials(user.name || user.email)}
                     </div>
-                    <p className="text-sm text-muted-foreground">{user.email}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Joined {user.createdAt ? formatDate(user.createdAt) : 'Unknown'}
-                    </p>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <h3 className="font-semibold text-gray-900">{user.name || 'No Name'}</h3>
+                        {getRoleIcon(user.role)}
+                      </div>
+                      <p className="text-sm text-gray-600">{user.email}</p>
+                      <p className="text-xs text-gray-500">
+                        Joined {user.createdAt ? formatDate(user.createdAt) : 'Unknown'}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className={`px-2 py-1 text-xs rounded-full border ${getRoleColor(user.role)}`}>
-                    {formatRole(user.role)}
-                  </span>
+                  <div className="flex items-center space-x-3">
+                    <span className={`px-3 py-1 text-xs font-medium rounded-full ${getRoleColor(user.role)}`}>
+                      {formatRole(user.role)}
+                    </span>
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => startAssignRole(user)}
-                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
-                  >
-                    <UserCog className="w-4 h-4" />
-                  </Button>
-
-                  {/* Only show delete button for non-admin users */}
-                  {formatRole(user.role) !== 'Admin' && (
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setDeleteConfirm(user.id)}
-                      className="text-destructive hover:text-destructive"
+                      onClick={() => startAssignRole(user)}
+                      className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                      title="Assign Role"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <UserCog className="w-4 h-4" />
                     </Button>
-                  )}
+
+                    {/* Only show delete button for non-admin users */}
+                    {formatRole(user.role) !== 'Admin' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setDeleteConfirm(user.id)}
+                        className="border-red-300 text-red-700 hover:bg-red-50"
+                        title="Delete User"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
