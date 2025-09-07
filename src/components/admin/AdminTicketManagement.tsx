@@ -153,14 +153,16 @@ export default function AdminTicketManagement({ onTicketUpdate }: AdminTicketMan
 
     try {
       await adminAPI.assignTicket(assigningTicket.id, assignData.assigneeId);
-      toast.success('Ticket assigned successfully');
+      const isReassign = assigningTicket.assignee;
+      toast.success(`Ticket ${isReassign ? 'reassigned' : 'assigned'} successfully`);
       setAssigningTicket(null);
       setAssignData({ assigneeId: '' });
       fetchData();
       onTicketUpdate();
     } catch (error) {
       console.error('Failed to assign ticket:', error);
-      toast.error('Failed to assign ticket');
+      const isReassign = assigningTicket.assignee;
+      toast.error(`Failed to ${isReassign ? 'reassign' : 'assign'} ticket`);
     }
   };
 
@@ -461,7 +463,7 @@ export default function AdminTicketManagement({ onTicketUpdate }: AdminTicketMan
                               size="sm"
                               onClick={() => startAssignTicket(ticket)}
                               className="border-blue-300 text-blue-700 hover:bg-blue-50"
-                              title="Assign Ticket"
+                              title={ticket.assignee ? "Reassign Ticket" : "Assign Ticket"}
                             >
                               <UserCog className="w-4 h-4" />
                             </Button>
@@ -482,13 +484,15 @@ export default function AdminTicketManagement({ onTicketUpdate }: AdminTicketMan
         </CardContent>
       </Card>
 
-      {/* Assign Ticket Modal */}
+      {/* Assign/Reassign Ticket Modal */}
       {assigningTicket && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-xl border-0">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900">Assign Ticket</h3>
+            <h3 className="text-lg font-semibold mb-4 text-gray-900">
+              {assigningTicket.assignee ? 'Reassign Ticket' : 'Assign Ticket'}
+            </h3>
             <p className="text-gray-600 mb-4">
-              Assign ticket &quot;{assigningTicket.subject}&quot; to a support agent
+              {assigningTicket.assignee ? 'Reassign' : 'Assign'} ticket &quot;{assigningTicket.subject}&quot; to a support agent
             </p>
             <div className="space-y-4">
               <div>
@@ -515,91 +519,7 @@ export default function AdminTicketManagement({ onTicketUpdate }: AdminTicketMan
                 onClick={handleAssignTicket}
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
               >
-                Assign Ticket
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => setAssigningTicket(null)}
-                className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-                            className="border-gray-300 text-gray-700 hover:bg-gray-100"
-                            title="View Ticket"
-                          >
-                            <Link href={`/dashboard/tickets/${ticket.id}`}>
-                              <Eye className="w-4 h-4" />
-                            </Link>
-                          </Button>
-                          {ticket.status !== 'CLOSED' ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => startAssignTicket(ticket)}
-                              className="border-blue-300 text-blue-700 hover:bg-blue-50"
-                              title="Assign Ticket"
-                            >
-                              <UserCog className="w-4 h-4" />
-                            </Button>
-                          ) : (
-                            <div className="flex items-center space-x-2">
-                              <span className="text-sm text-gray-500 italic">Closed</span>
-                              <CheckCircle className="w-4 h-4 text-gray-400" />
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Assign Ticket Modal */}
-      {assigningTicket && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-xl border-0">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900">Assign Ticket</h3>
-            <p className="text-gray-600 mb-4">
-              Assign ticket &quot;{assigningTicket.subject}&quot; to a support agent
-            </p>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700">Support Agent</label>
-                <Select
-                  options={[
-                    { value: '', label: 'Unassigned' },
-                    ...users.filter(user => {
-                      // Handle both string and object role formats
-                      const userRole = typeof user.role === 'string' ? user.role : (user.role as any)?.name;
-                      return userRole === 'ROLE_AGENT';
-                    }).map(user => ({
-                      value: user.id,
-                      label: `${user.name} (Support Agent)`
-                    }))
-                  ]}
-                  value={assignData.assigneeId}
-                  onChange={(value) => setAssignData(prev => ({ ...prev, assigneeId: value }))}
-                />
-              </div>
-            </div>
-            <div className="flex space-x-2 mt-6">
-              <Button 
-                onClick={handleAssignTicket}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                Assign Ticket
+                {assigningTicket.assignee ? 'Reassign Ticket' : 'Assign Ticket'}
               </Button>
               <Button 
                 variant="outline" 

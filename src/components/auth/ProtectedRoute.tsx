@@ -21,7 +21,7 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
       }
 
       if (requiredRole) {
-        const userRole = user.role;
+        const userRole = typeof user.role === 'string' ? user.role : (user.role as any)?.name;
         const roleHierarchy = {
           'ROLE_USER': 1,
           'ROLE_AGENT': 2,
@@ -49,7 +49,7 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
   }
 
   if (requiredRole) {
-    const userRole = user.role;
+    const userRole = typeof user.role === 'string' ? user.role : (user.role as any)?.name;
     const roleHierarchy = {
       'ROLE_USER': 1,
       'ROLE_AGENT': 2,

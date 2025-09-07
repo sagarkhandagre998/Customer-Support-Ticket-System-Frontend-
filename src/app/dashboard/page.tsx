@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { dashboardAPI, agentAPI } from '@/lib/api';
+import { dashboardAPI, agentAPI, adminAPI } from '@/lib/api';
 import { DashboardStats, Ticket } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -51,9 +51,54 @@ function DashboardContent() {
       try {
         setIsLoading(true);
         
-        // Check if user is an agent - load agent-specific data
+        // Check user role and load appropriate data
         const userRole = typeof user?.role === 'string' ? user.role : (user?.role as any)?.name;
-        if (userRole === 'ROLE_AGENT') {
+        
+        if (userRole === 'ROLE_ADMIN') {
+          console.log('🔍 Dashboard: User is an admin, fetching admin dashboard data');
+          // For admins, fetch all users and tickets to calculate comprehensive stats
+          const [usersData, ticketsData] = await Promise.all([
+            adminAPI.getAllUsers(),
+            adminAPI.getAllTickets()
+          ]);
+          
+          console.log('🔍 Dashboard: Admin users data:', usersData);
+          console.log('🔍 Dashboard: Admin tickets data:', ticketsData);
+          
+          setRecentTickets(ticketsData.slice(0, 5));
+          
+          // Calculate admin stats
+          const totalUsers = usersData.length;
+          const totalTickets = ticketsData.length;
+          const openTickets = ticketsData.filter(t => t.status === 'OPEN').length;
+          const inProgressTickets = ticketsData.filter(t => t.status === 'IN_PROGRESS').length;
+          const resolvedTickets = ticketsData.filter(t => t.status === 'RESOLVED').length;
+          const closedTickets = ticketsData.filter(t => t.status === 'CLOSED').length;
+          
+          // Count users by role
+          const supportAgents = usersData.filter(u => {
+            const userRole = typeof u.role === 'string' ? u.role : (u.role as any)?.name;
+            return userRole === 'ROLE_AGENT';
+          }).length;
+          
+          const calculatedStats = {
+            totalTickets,
+            openTickets,
+            inProgressTickets,
+            resolvedTickets,
+            closedTickets,
+            totalUsers,
+            supportAgents,
+            averageResolutionTime: 0,
+            ticketsByPriority: ticketsData.reduce((acc, ticket) => {
+              acc[ticket.priority] = (acc[ticket.priority] || 0) + 1;
+              return acc;
+            }, { LOW: 0, MEDIUM: 0, HIGH: 0, URGENT: 0 } as { LOW: number; MEDIUM: number; HIGH: number; URGENT: number })
+          };
+          
+          console.log('🔍 Dashboard: Calculated admin stats:', calculatedStats);
+          setStats(calculatedStats);
+        } else if (userRole === 'ROLE_AGENT') {
           console.log('🔍 Dashboard: User is an agent, fetching agent dashboard data');
           // For agents, fetch assigned tickets and calculate stats on frontend
           const assignedTickets = await agentAPI.getAssignedTickets();
@@ -80,7 +125,7 @@ function DashboardContent() {
           console.log('🔍 Dashboard: Calculated agent stats:', calculatedStats);
           setStats(calculatedStats);
         } else {
-          console.log('🔍 Dashboard: User is not an agent, fetching regular dashboard data');
+          console.log('🔍 Dashboard: User is a regular user, fetching regular dashboard data');
           const [statsData, ticketsData] = await Promise.all([
             dashboardAPI.getStats(),
             dashboardAPI.getMyTickets(),

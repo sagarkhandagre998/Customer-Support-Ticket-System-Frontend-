@@ -164,13 +164,15 @@ function AllTicketsPageContent() {
 
     try {
       await adminAPI.assignTicket(assigningTicket.id, assignData.assigneeId);
-      toast.success('Ticket assigned successfully');
+      const isReassign = assigningTicket.assignee;
+      toast.success(`Ticket ${isReassign ? 'reassigned' : 'assigned'} successfully`);
       setAssigningTicket(null);
       setAssignData({ assigneeId: '' });
       fetchData();
     } catch (error) {
       console.error('Failed to assign ticket:', error);
-      toast.error('Failed to assign ticket');
+      const isReassign = assigningTicket.assignee;
+      toast.error(`Failed to ${isReassign ? 'reassign' : 'assign'} ticket`);
     }
   };
 
@@ -531,7 +533,7 @@ function AllTicketsPageContent() {
                             className="border-green-300 text-green-700 hover:bg-green-50"
                           >
                             <User className="w-4 h-4" />
-                            <span className="ml-1">Assign</span>
+                            <span className="ml-1">{ticket.assignee ? 'Reassign' : 'Assign'}</span>
                           </Button>
                         )}
                         {ticket.status !== 'CLOSED' && (
@@ -565,13 +567,15 @@ function AllTicketsPageContent() {
           </CardContent>
         </Card>
 
-        {/* Assign Ticket Modal */}
+        {/* Assign/Reassign Ticket Modal */}
         {assigningTicket && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <Card className="w-full max-w-md border-0 shadow-xl">
               <CardHeader>
-                <CardTitle>Assign Ticket</CardTitle>
-                <CardDescription>Assign ticket &quot;{assigningTicket.subject}&quot; to a support agent</CardDescription>
+                <CardTitle>{assigningTicket.assignee ? 'Reassign Ticket' : 'Assign Ticket'}</CardTitle>
+                <CardDescription>
+                  {assigningTicket.assignee ? 'Reassign' : 'Assign'} ticket &quot;{assigningTicket.subject}&quot; to a support agent
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -599,7 +603,7 @@ function AllTicketsPageContent() {
                     onClick={handleAssignTicket}
                     className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                   >
-                    Assign Ticket
+                    {assigningTicket.assignee ? 'Reassign Ticket' : 'Assign Ticket'}
                   </Button>
                   <Button
                     variant="outline"

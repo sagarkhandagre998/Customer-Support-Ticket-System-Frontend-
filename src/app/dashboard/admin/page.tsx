@@ -12,14 +12,14 @@ import {
   AlertTriangle, 
   CheckCircle, 
   TrendingUp,
-  BarChart3,
-  Activity,
   Shield,
-  ArrowLeft
+  ArrowLeft,
+  Activity,
+  BarChart3
 } from 'lucide-react';
-import { adminAPI } from '@/lib/api';
 import { getPriorityColor, getStatusColor } from '@/lib/utils';
 import toast from 'react-hot-toast';
+import { adminAPI } from '@/lib/api';
 import AdminUserManagement from '@/components/admin/AdminUserManagement';
 import AdminTicketManagement from '@/components/admin/AdminTicketManagement';
 import AdminAnalytics from '@/components/admin/AdminAnalytics';
@@ -45,19 +45,26 @@ function AdminDashboardContent() {
     openTickets: 0,
     resolvedTickets: 0,
     pendingTickets: 0,
+    supportAgents: 0,
+    regularUsers: 0,
     ticketsByStatus: {} as Record<string, number>,
     ticketsByPriority: {} as Record<string, number>
   });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchAdminStats();
-  }, []);
+    if (user) {
+      fetchAdminStats();
+    }
+  }, [user]);
 
   const fetchAdminStats = async () => {
     try {
       setIsLoading(true);
       console.log('🔍 AdminDashboard: Starting to fetch admin stats...');
+      console.log('🔍 AdminDashboard: Current user:', user);
+      console.log('🔍 AdminDashboard: User role:', user?.role);
+      
       const [usersData, ticketsData] = await Promise.all([
         adminAPI.getAllUsers(),
         adminAPI.getAllTickets()
@@ -66,11 +73,34 @@ function AdminDashboardContent() {
       console.log('✅ AdminDashboard: Users data:', usersData);
       console.log('✅ AdminDashboard: Tickets data:', ticketsData);
 
+
       const totalUsers = usersData.length;
       const totalTickets = ticketsData.length;
       const openTickets = ticketsData.filter(t => t.status === 'OPEN').length;
       const resolvedTickets = ticketsData.filter(t => t.status === 'CLOSED').length;
       const pendingTickets = ticketsData.filter(t => t.status === 'IN_PROGRESS').length;
+      
+      // Count users by role
+      const supportAgents = usersData.filter(u => {
+        const userRole = typeof u.role === 'string' ? u.role : (u.role as any)?.name;
+        return userRole === 'ROLE_AGENT';
+      }).length;
+      
+      const regularUsers = usersData.filter(u => {
+        const userRole = typeof u.role === 'string' ? u.role : (u.role as any)?.name;
+        return userRole === 'ROLE_USER';
+      }).length;
+      
+      console.log('📊 AdminDashboard: User counts:', {
+        totalUsers,
+        supportAgents,
+        regularUsers,
+        usersData: usersData.map(u => ({
+          id: u.id,
+          name: u.name,
+          role: u.role
+        }))
+      });
 
       // Group tickets by status and priority
       const ticketsByStatus = ticketsData.reduce((acc, ticket) => {
@@ -82,26 +112,43 @@ function AdminDashboardContent() {
         acc[ticket.priority] = (acc[ticket.priority] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
-
+      
       const newStats = {
         totalUsers,
         totalTickets,
         openTickets,
         resolvedTickets,
         pendingTickets,
+        supportAgents,
+        regularUsers,
         ticketsByStatus,
         ticketsByPriority
       };
 
       console.log('✅ AdminDashboard: Calculated stats:', newStats);
       setStats(newStats);
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ AdminDashboard: Failed to fetch admin data:', error);
       console.error('❌ AdminDashboard: Error details:', {
         message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
+        response: error.response?.data,
+        status: error.response?.status,
+        url: error.config?.url
       });
-      toast.error('Failed to load admin data');
+      
+      // Show more specific error message
+      if (error.response?.status === 401) {
+        toast.error('Unauthorized: Please login again');
+      } else if (error.response?.status === 403) {
+        toast.error('Forbidden: You do not have admin privileges');
+      } else if (error.response?.status === 404) {
+        toast.error('API endpoint not found. Please check backend connection.');
+      } else if (error.code === 'ECONNREFUSED') {
+        toast.error('Cannot connect to backend server. Please check if backend is running.');
+      } else {
+        toast.error(`Failed to load admin data: ${error.message || 'Unknown error'}`);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -166,60 +213,6 @@ function AdminDashboardContent() {
           </div>
         </div>
 
-        {/* Quick Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalUsers}</div>
-              <p className="text-xs text-muted-foreground">
-                Active system users
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Tickets</CardTitle>
-              <Ticket className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalTickets}</div>
-              <p className="text-xs text-muted-foreground">
-                All system tickets
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Open Tickets</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-orange-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-600">{stats.openTickets}</div>
-              <p className="text-xs text-muted-foreground">
-                Requiring attention
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Resolved</CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.resolvedTickets}</div>
-              <p className="text-xs text-muted-foreground">
-                Successfully closed
-              </p>
-            </CardContent>
-          </Card>
-        </div>
 
         {/* Navigation Tabs */}
         <div className="border-b">
@@ -257,14 +250,65 @@ function AdminDashboardContent() {
   );
 }
 
-function AdminOverview({ stats }: { stats: {
-  totalTickets: number;
-  ticketsByStatus: Record<string, number>;
-  ticketsByPriority: Record<string, number>;
-} }) {
+function AdminOverview({ stats }: { stats: any }) {
   return (
     <div className="space-y-6">
-      {/* Status Distribution */}
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalUsers}</div>
+            <p className="text-xs text-muted-foreground">
+              Active system users
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Tickets</CardTitle>
+            <Ticket className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalTickets}</div>
+            <p className="text-xs text-muted-foreground">
+              All system tickets
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Open Tickets</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">{stats.openTickets}</div>
+            <p className="text-xs text-muted-foreground">
+              Requiring attention
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Support Agents</CardTitle>
+            <Shield className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{stats.supportAgents}</div>
+            <p className="text-xs text-muted-foreground">
+              Active support staff
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
@@ -290,7 +334,7 @@ function AdminOverview({ stats }: { stats: {
                       />
                     </div>
                     <span className="text-sm text-muted-foreground w-8 text-right">
-                      {count}
+                      {count as number}
                     </span>
                   </div>
                 </div>
@@ -323,7 +367,7 @@ function AdminOverview({ stats }: { stats: {
                       />
                     </div>
                     <span className="text-sm text-muted-foreground w-8 text-right">
-                      {count}
+                      {count as number}
                     </span>
                   </div>
                 </div>
@@ -332,36 +376,6 @@ function AdminOverview({ stats }: { stats: {
           </CardContent>
         </Card>
       </div>
-
-    </div>
-  );
-}
-
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>
-            Common administrative tasks and shortcuts
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button variant="outline" className="h-20 flex-col space-y-2">
-              <UserPlus className="w-6 h-6" />
-              <span>Add New User</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col space-y-2">
-              <Settings className="w-6 h-6" />
-              <span>System Settings</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col space-y-2">
-              <Eye className="w-6 h-6" />
-              <span>View Reports</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
