@@ -2,6 +2,8 @@
 
 A modern, full-stack ticket management system built with Next.js, TypeScript, and Tailwind CSS. This application provides a comprehensive solution for managing support tickets with role-based access control, real-time updates, and an intuitive admin dashboard.
 
+## Live Application - https://ticketpro-uk6x.onrender.com/
+
 ## ✨ Features
 
 ### 🔐 Authentication & Authorization
