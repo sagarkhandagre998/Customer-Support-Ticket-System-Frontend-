@@ -49,7 +49,7 @@ const navigationItems = [
     name: 'My Tickets',
     href: '/dashboard/tickets',
     icon: Ticket,
-    roles: ['ROLE_USER', 'ROLE_AGENT'], // Removed ROLE_ADMIN
+    roles: ['ROLE_USER'], // Removed ROLE_AGENT since they have Agent Dashboard
   },
   {
     name: 'Agent Dashboard',
@@ -132,7 +132,12 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
         animate={{ x: isOpen ? 0 : -300 }}
         transition={{ type: 'spring', damping: 20 }}
         className={cn(
-          'fixed left-0 top-0 z-50 h-full w-64 bg-white border-r border-gray-200 shadow-xl lg:translate-x-0',
+          'h-screen w-64 bg-white/95 backdrop-blur-sm border-r border-gray-200 shadow-professional-lg',
+          // Mobile: fixed positioning with slide animation
+          'fixed left-0 top-0 z-50 lg:hidden',
+          // Desktop: static positioning, always visible
+          'lg:relative lg:translate-x-0 lg:z-auto lg:block',
+          // Mobile animation states
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >

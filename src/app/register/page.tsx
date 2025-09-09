@@ -186,25 +186,6 @@ export default function RegisterPage() {
                 </Link>
               </p>
             </div>
-
-            {/* Demo Credentials */}
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200 animate-fadeIn">
-              <h3 className="text-sm font-medium text-blue-900 mb-2">Demo Accounts</h3>
-              <div className="space-y-2 text-xs text-blue-800">
-                <div className="flex justify-between">
-                  <span>User:</span>
-                  <span>user@demo.com / user123</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Support Agent:</span>
-                  <span>agent@demo.com / agent123</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Admin:</span>
-                  <span>admin@demo.com / admin123</span>
-                </div>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>

@@ -2,6 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Critical CSS to prevent FOUC and ensure text visibility */
+html {
+  color: #171717 !important;
+  background-color: #ffffff !important;
+}
+
+body {
+  color: #171717 !important;
+  background-color: #ffffff !important;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+}
+
+/* Ensure all text is visible by default */
+* {
+  color: inherit !important;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -46,6 +63,22 @@
     --card-foreground: #171717;
     --popover: #ffffff;
     --popover-foreground: #171717;
+  }
+  
+  /* Ensure text is always visible */
+  * {
+    color: inherit;
+  }
+  
+  /* Fallback for when CSS variables are not loaded */
+  html {
+    color: #171717;
+    background-color: #ffffff;
+  }
+  
+  /* Ensure all text elements have proper color inheritance */
+  h1, h2, h3, h4, h5, h6, p, span, div, a, button, input, textarea, label {
+    color: inherit;
   }
 }
 
@@ -240,7 +273,11 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Custom scrollbar */
@@ -265,6 +302,40 @@ body {
 /* Smooth animations */
 * {
   transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Enhanced scrollbar for better UX */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 8px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.5);
+}
+
+/* Professional shadows and borders */
+.shadow-professional {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.shadow-professional-lg {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Glass morphism effect */
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 /* Focus styles */
